@@ -1,0 +1,33 @@
+[deps]
+Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
+BcubeGmsh = "8c8b3700-392b-4630-b974-b8b78831232a"
+BcubeParallel = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"
+BcubeVTK = "f7a61acb-f482-4505-b2eb-e9cadd76b6b4"
+HauntedArrays = "88ea1a40-65ed-4bf4-98f2-fb8783b28482"
+HauntedArrays2PetscWrap = "5aa179f6-1a8e-402c-b434-5ad6c0ea8643"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+MPIUtils = "d2fda7fa-1d8f-42bf-b3ab-bccc7e8e7842"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+OrdinaryDiffEqDifferentiation = "4302a76b-040a-498a-8c04-15b101fed76b"
+SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
+
+[compat]
+Bcube = "0.2"
+BcubeGmsh = "0.1"
+BcubeParallel = "0.1.3"
+BcubeVTK = "0.1"
+HauntedArrays = "0.1.3"
+HauntedArrays2PetscWrap = "0.1.1"
+MPI = "0.20"
+OrdinaryDiffEq = "=6.97.0"
+OrdinaryDiffEqDifferentiation = "=1.4.0"
+WriteVTK = "1.21"
+
+[sources]
+HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
+HauntedArrays2PetscWrap = {url = "https://github.com/bmxam/HauntedArrays2PetscWrap.jl"}
+MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}

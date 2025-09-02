@@ -1,0 +1,29 @@
+name = "BcubeMPI"
+uuid = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"
+authors = ["Ghislain Blanchard, Lokman Bennani and Maxime Bouyges"]
+version = "0.1.3"
+
+[deps]
+Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
+BcubeGmsh = "8c8b3700-392b-4630-b974-b8b78831232a"
+BcubeVTK = "f7a61acb-f482-4505-b2eb-e9cadd76b6b4"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+HauntedArrays = "88ea1a40-65ed-4bf4-98f2-fb8783b28482"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+MPIUtils = "d2fda7fa-1d8f-42bf-b3ab-bccc7e8e7842"
+Metis = "2679e427-3c69-5b7f-982b-ece356f1e94b"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
+gmsh_jll = "630162c2-fc9b-58b3-9910-8442a8a132e6"
+
+[sources]
+HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
+MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}
+
+[compat]
+Bcube = "0.2"
+BcubeGmsh = "0.1.0"
+BcubeVTK = "0.1.0"
+HauntedArrays = "0.1.3"
+MPI = "0.20"

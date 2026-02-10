@@ -3,7 +3,7 @@ println("Running linear transport example...")
 println("Loading modules...")
 using MPI
 using Bcube, BcubeGmsh, BcubeVTK
-using BcubeParallel
+using BcubeMPI
 using LinearAlgebra
 using WriteVTK # to be removed when "write_pvtk" will be in BcubeVTK
 using MPIUtils
@@ -32,7 +32,7 @@ function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
     # )
 
     values = var_on_centers(u, parent(vtk.mesh))
-    BcubeParallel.write_pvtk(
+    BcubeMPI.write_pvtk(
         vtk.basename,
         vtk.ite,
         t,
@@ -48,7 +48,7 @@ end
 always_true(args...) = true
 
 function timeintegration_expl(m, l, U, V, cbset, dmesh)
-    rank = MPI.Comm_rank(BcubeParallel.get_comm(dmesh))
+    rank = MPI.Comm_rank(BcubeMPI.get_comm(dmesh))
     vtk = VtkHandler(joinpath(out_dir, "linear_transport_expl"), dmesh)
 
     Δt = CFL * min(lx / nx, ly / ny) / norm(c) # Time step
@@ -64,7 +64,7 @@ function timeintegration_expl(m, l, U, V, cbset, dmesh)
 end
 
 function timeintegration_impl_dense(m, l, U, V, cbset, dmesh)
-    rank = MPI.Comm_rank(BcubeParallel.get_comm(dmesh))
+    rank = MPI.Comm_rank(BcubeMPI.get_comm(dmesh))
     vtk = VtkHandler(joinpath(out_dir, "linear_transport_impl_dense"), dmesh)
 
     q0 = Bcube.allocate_dofs(U)
@@ -90,7 +90,7 @@ end
 
 function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     # Init VTK
-    rank = MPI.Comm_rank(BcubeParallel.get_comm(dmesh))
+    rank = MPI.Comm_rank(BcubeMPI.get_comm(dmesh))
     vtk = VtkHandler(joinpath(out_dir, "linear_transport_impl_sparse"), dmesh)
 
     # Allocate vector of dofs (a HauntedVector)

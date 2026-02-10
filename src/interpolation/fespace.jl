@@ -115,25 +115,25 @@ In `Bcube`, i.e on the local processor, there are two numberings:
 * one "global" numbering for the MultiFESpace
 These two numberings exist wether the computation is sequential or parallel
 
-In `BcubeParallel` there are the two previous numberings, specific to each rank;
+In `BcubeMPI` there are the two previous numberings, specific to each rank;
 and there are two additionnal numberings:
 * one "global" (MPI sense) numbering for each DSingleFESpace
 * one "global" (MPI sense) numbering for the DMultiFESpace
 
 For the latter, we have the choice between
-* storing one big vector Bcube.MultiFESpace.global --> BcubeParallel.DMultiFESpace.global
-* storing, similary to MultiFESpace, a Tuple of Bcube.SingleFESpace.local -> BcubeParallel.DMultiFESpace.global
+* storing one big vector Bcube.MultiFESpace.global --> BcubeMPI.DMultiFESpace.global
+* storing, similary to MultiFESpace, a Tuple of Bcube.SingleFESpace.local -> BcubeMPI.DMultiFESpace.global
 
 For now, I keep the two solutions. Names may evolve
 """
 struct DistributedMultiFESpace{N, FE, I, E} <: Bcube.AbstractMultiFESpace{N, FE}
     mfeSpace::MultiFESpace{N, FE}
 
-    # Bcube.MultiFESpace.global index to BcubeParallel.DMultiFESpace.global index
+    # Bcube.MultiFESpace.global index to BcubeMPI.DMultiFESpace.global index
     # "sequential" global to "parallel" global
     seqg_to_parg::Vector{I}
 
-    # Bcube.SingleFESpace.local index to BcubeParallel.DMultiFESpace.global index
+    # Bcube.SingleFESpace.local index to BcubeMPI.DMultiFESpace.global index
     seql_to_parg::NTuple{N, Vector{I}}
 
     # Below : stuff more specific to HauntedArrays, should never be accessed by user

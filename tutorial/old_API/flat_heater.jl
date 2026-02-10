@@ -2,10 +2,10 @@
 module flat_heater #hide
 println("Running flat heater API example...") #hide
 
-const dir = string(@__DIR__, "/../") # BcubeParallel dir
+const dir = string(@__DIR__, "/../") # BcubeMPI dir
 using MPI
 using PetscWrap
-using BcubeParallel
+using BcubeMPI
 using Bcube
 using LinearAlgebra
 using WriteVTK

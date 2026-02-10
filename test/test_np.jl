@@ -2,7 +2,7 @@ module test
 using MPI
 using MPIUtils
 using Bcube
-using BcubeParallel
+using BcubeMPI
 
 MPI.Initialized() || MPI.Init()
 comm = MPI.COMM_WORLD

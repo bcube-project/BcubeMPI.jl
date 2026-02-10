@@ -1,6 +1,6 @@
 ```@meta
-CurrentModule = BcubeParallel
+CurrentModule = BcubeMPI
 ```
 
-# BcubeParallel
+# BcubeMPI
 Parallel support for Bcube.

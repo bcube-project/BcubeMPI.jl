@@ -1,5 +1,5 @@
 module test
-using BcubeParallel
+using BcubeMPI
 using Bcube
 using MPI
 using WriteVTK

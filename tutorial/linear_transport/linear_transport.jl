@@ -37,7 +37,7 @@ println("Running linear transport example...") #hide
 # Load the necessary packages
 using MPI
 using Bcube, BcubeGmsh, BcubeVTK
-using BcubeParallel
+using BcubeMPI
 using LinearAlgebra
 using MPIUtils
 

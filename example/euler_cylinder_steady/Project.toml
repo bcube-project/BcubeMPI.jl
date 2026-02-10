@@ -1,7 +1,7 @@
 [deps]
 Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
 BcubeGmsh = "8c8b3700-392b-4630-b974-b8b78831232a"
-BcubeParallel = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"
+BcubeMPI = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"
 BcubeVTK = "f7a61acb-f482-4505-b2eb-e9cadd76b6b4"
 DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
 HauntedArrays = "88ea1a40-65ed-4bf4-98f2-fb8783b28482"
@@ -27,7 +27,7 @@ MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}
 [compat]
 Bcube = "0.2"
 BcubeGmsh = "0.1"
-BcubeParallel = "0.1.3"
+BcubeMPI = "0.1.3"
 BcubeVTK = "0.1"
 HauntedArrays = "0.1.3"
 HauntedArrays2PetscWrap = "0.1.1"

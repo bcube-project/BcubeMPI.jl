@@ -152,7 +152,7 @@ function init!(q, dΩ, initstate)
     Pinf = initstate.P_inf
     Tinf = initstate.T_inf
     r    = initstate.r_gas
-    γ   = initstate.γ
+    γ    = initstate.γ
 
     ρinf = Pinf / r / Tinf
     ainf = √(γ * r * Tinf)

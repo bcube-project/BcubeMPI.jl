@@ -1,5 +1,5 @@
 using Bcube
-using BcubeParallel
+using BcubeMPI
 using WriteVTK
 using PartitionedArrays
 const PArray = PartitionedArrays

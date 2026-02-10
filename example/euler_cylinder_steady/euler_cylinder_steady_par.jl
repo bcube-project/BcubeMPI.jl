@@ -7,7 +7,7 @@ println("Running euler_cylinder_steady example...") #hide
 println("loading modules...")
 using Bcube, BcubeGmsh
 #using StatProfilerHTML # nice to profile in parallel
-using BcubeParallel
+using BcubeMPI
 using LinearAlgebra
 using WriteVTK
 using StaticArrays
@@ -89,7 +89,7 @@ function append_vtk(vtk, vars, t, params; res = nothing)
     #     append = vtk.ite > 0,
     # )
 
-    BcubeParallel.write_pvtk(
+    BcubeMPI.write_pvtk(
         vtk.basename,
         vtk.ite,
         t,

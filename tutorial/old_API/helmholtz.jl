@@ -18,7 +18,7 @@ println("Running Helmholtz example...") #hide
 # Load the necessary packages
 const dir = string(@__DIR__, "/")
 using Bcube
-using BcubeParallel
+using BcubeMPI
 using LinearAlgebra
 using WriteVTK
 using Printf

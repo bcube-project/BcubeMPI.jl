@@ -60,7 +60,7 @@ Remove nodes that are not connected to any cell.
 Why ? With the current implementation of Bcube._read_msh, a lot of dummy nodes are
 read for partitionned msh files. By "dummy" I mean nodes that are not connected to any cell.
 
-This function could go in Bcube since it's not specific to MPI / BcubeParallel
+This function could go in Bcube since it's not specific to MPI / BcubeMPI
 """
 function remove_isolated_nodes(mesh::Bcube.Mesh)
     # tag non-isolated and isolated nodes

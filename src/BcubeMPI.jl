@@ -1,4 +1,4 @@
-module BcubeParallel
+module BcubeMPI
 
 using Base
 using Metis

@@ -1,4 +1,4 @@
-using BcubeParallel
+using BcubeMPI
 using Test
 
 # using MPI
@@ -9,7 +9,7 @@ using Test
 # MPI.Finalize()
 include("run_mpi.jl")
 
-@testset "BcubeParallel.jl" begin
+@testset "BcubeMPI.jl" begin
     @test 1 === 1
     run_mpi(; nprocs = 4, filename = "test_hello.jl")
 end

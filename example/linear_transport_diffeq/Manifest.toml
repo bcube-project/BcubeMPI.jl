@@ -135,7 +135,7 @@ git-tree-sha1 = "da066a7a1f0177a040dccbba98deec3f58492d73"
 uuid = "8c8b3700-392b-4630-b974-b8b78831232a"
 version = "0.1.0"
 
-[[deps.BcubeParallel]]
+[[deps.BcubeMPI]]
 deps = ["Bcube", "BcubeGmsh", "BcubeVTK", "Graphs", "HauntedArrays", "MPI", "MPIUtils", "Metis", "Printf", "SparseArrays", "WriteVTK", "gmsh_jll"]
 path = "../.."
 uuid = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"

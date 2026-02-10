@@ -1,6 +1,6 @@
 push!(LOAD_PATH, "../src/")
 
-using BcubeParallel
+using BcubeMPI
 using Documenter
 using Literate
 
@@ -19,14 +19,14 @@ gen_markdown(tutorial_src, "helmholtz.jl", tutorial_dir)
 #gen_markdown(tutorial_src, "flat_heater.jl", tutorial_dir)
 
 makedocs(;
-    modules = [BcubeParallel],
+    modules = [BcubeMPI],
     authors = "ghislainb, lokmanb and bmxam",
-    sitename = "BcubeParallel",
+    sitename = "BcubeMPI",
     clean = true,
     doctest = false,
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://ghislainb.github.io/bcubeparallel",
+        canonical = "https://github.com/bcube-project/BcubeMPI.jl",
         assets = String[],
     ),
     pages = ["Home" => "index.md", "Tutorials" => Any["tutorial/helmholtz.md",
@@ -35,4 +35,4 @@ makedocs(;
     ]],
 )
 
-deploydocs(; repo = "github.com/ghislainb/BcubeParallel.git", push_preview = true)
+deploydocs(; repo = "github.com/bcube-project/BcubeMPI.jl.git", push_preview = true)

@@ -25,9 +25,9 @@ HauntedArrays2PetscWrap = {url = "https://github.com/bmxam/HauntedArrays2PetscWr
 MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}
 
 [compat]
-Bcube = "0.2"
-BcubeGmsh = "0.1"
-BcubeMPI = "0.1.3"
+Bcube = "0.3.9"
+BcubeGmsh = "0.2"
+BcubeMPI = "0.1.4"
 BcubeVTK = "0.1"
 HauntedArrays = "0.1.3"
 HauntedArrays2PetscWrap = "0.1.1"

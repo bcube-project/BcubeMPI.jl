@@ -12,13 +12,19 @@ MPIUtils = "d2fda7fa-1d8f-42bf-b3ab-bccc7e8e7842"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 OrdinaryDiffEqDifferentiation = "4302a76b-040a-498a-8c04-15b101fed76b"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 
+[sources]
+HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
+HauntedArrays2PetscWrap = {url = "https://github.com/bmxam/HauntedArrays2PetscWrap.jl"}
+MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}
+
 [compat]
-Bcube = "0.2"
-BcubeGmsh = "0.1"
-BcubeMPI = "0.1.3"
+Bcube = "0.3.9"
+BcubeGmsh = "0.2"
+BcubeMPI = "0.1.4"
 BcubeVTK = "0.1"
 HauntedArrays = "0.1.3"
 HauntedArrays2PetscWrap = "0.1.1"
@@ -26,8 +32,3 @@ MPI = "0.20"
 OrdinaryDiffEq = "=6.97.0"
 OrdinaryDiffEqDifferentiation = "=1.4.0"
 WriteVTK = "1.21"
-
-[sources]
-HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
-HauntedArrays2PetscWrap = {url = "https://github.com/bmxam/HauntedArrays2PetscWrap.jl"}
-MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}

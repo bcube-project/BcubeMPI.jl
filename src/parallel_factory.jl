@@ -56,7 +56,7 @@ function compute_dof_global_numbering(dhl::DofHandler, dmesh::DistributedMesh)
 
     # Mesh numbering
     mesh = dmesh.mesh
-    ind2tag = Bcube.absolute_indices(mesh, :cell) # global id of cells, ghost included
+    ind2tag = Bcube.get_absolute_cell_indices(mesh) # global id of cells, ghost included
     tag2ind = Dict{Int, Int}(tag => ind for (ind, tag) in enumerate(ind2tag))
     #@one_at_a_time ((get_nvars(sys) == 1) && (@show dof2coords(sys, mesh))) # debug print
 
@@ -196,7 +196,7 @@ function _compute_dof2part(
     # dof2tag[:,2] = (local dof index) -> local index in cell
     #dof2tag = zeros(Int, get_ndofs(dhl), 2)
 
-    ind2tag = Bcube.absolute_indices(mesh, :cell)
+    ind2tag = Bcube.get_absolute_cell_indices(mesh)
     for icell in 1:ncells(mesh)
         icell_g = ind2tag[icell]
         _isghost = haskey(ghost_tag2part, icell_g)

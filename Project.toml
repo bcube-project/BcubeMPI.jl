@@ -22,8 +22,8 @@ HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
 MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}
 
 [compat]
-Bcube = "0.2"
-BcubeGmsh = "0.1.0"
-BcubeVTK = "0.1.0"
+Bcube = "0.3"
+BcubeGmsh = "0.2"
+BcubeVTK = "0.1"
 HauntedArrays = "0.1.3"
 MPI = "0.20"

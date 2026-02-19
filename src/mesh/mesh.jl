@@ -4,9 +4,9 @@ To be improved / redefined : all the attributes are not necessary
 Remark : identifiying ghost nodes is not trivial and requires several exhanges iterations
 between partitions. Since we don't need this info for now, it is not computed.
 """
-struct DistributedMesh{topoDim, spaceDim} <: Bcube.AbstractMesh{topoDim, spaceDim}
+struct DistributedMesh{topoDim, spaceDim, M} <: Bcube.AbstractMesh{topoDim, spaceDim}
     comm::MPI.Comm
-    mesh::Bcube.Mesh{topoDim, spaceDim}
+    mesh::M
     ghost_tag2part::Dict{Int, Int} # ghost-cell tag (=absolute id) => partition owning that ghost
     local_cells::Vector{Int} # Index of "local" (i.e handled by local partition) cells in mesh
     ghost_cells::Vector{Int} # Index of "ghost" (i.e handled by another partition) cells in mesh
@@ -18,6 +18,8 @@ const DMesh = DistributedMesh
 
 Base.parent(dmesh::DMesh) = dmesh.mesh
 
+Bcube.get_nodes(dmesh::DMesh) = Bcube.get_nodes(parent(dmesh))
+
 function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::Dict{Int, Int}, comm::MPI.Comm)
     ghost_tags = keys(ghost_tag2part)
 
@@ -25,7 +27,7 @@ function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::Dict{Int, Int}, comm:
     n_ghosts = length(ghost_tags)
     local_cells = zeros(Int, ncells(mesh) - n_ghosts)
     ghost_cells = zeros(Int, n_ghosts)
-    cell_tags = Bcube.absolute_indices(mesh, :cell)
+    cell_tags = Bcube.get_absolute_cell_indices(mesh)
 
     # Identify local and ghost cells
     # Rq : can't we improve this loop by looping over ghost_tags instead of ncells(mesh)?
@@ -49,7 +51,13 @@ function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::Dict{Int, Int}, comm:
     # Tag ghost nodes
     mesh = tag_ghost_nodes(mesh, ghost_tag2part, ghost_cells, comm)
 
-    DistributedMesh(comm, mesh, ghost_tag2part, local_cells, ghost_cells)
+    DistributedMesh{Bcube.topodim(mesh), Bcube.spacedim(mesh), typeof(mesh)}(
+        comm,
+        mesh,
+        ghost_tag2part,
+        local_cells,
+        ghost_cells,
+    )
 end
 
 """
@@ -81,18 +89,25 @@ function remove_isolated_nodes(mesh::Bcube.Mesh)
     _nodes = get_nodes(mesh)[indRealNodes]
     _c2n = [old2new[inodes] for inodes in c2n]
     _conn = Bcube.Connectivity([nnodes(e) for e in Bcube.cells(mesh)], vcat(_c2n...))
-    _bc_nodes = Dict(tag => old2new[inodes] for (tag, inodes) in Bcube.boundary_nodes(mesh))
-    _absolute_node_indices = Bcube.absolute_indices(mesh, :node)[indRealNodes]
-    _absolute_cell_indices = Bcube.absolute_indices(mesh, :cell) # numbering doesn't change
+    _bcnames = Dict(
+        boundary_tag(mesh, name) => String(name) for
+        (i, name) in enumerate(Bcube.boundary_names(mesh))
+    )
+    _bc_nodes = Dict(
+        boundary_tag(mesh, name) => old2new[inodes] for
+        (name, inodes) in pairs(Bcube.boundary_nodes(mesh))
+    )
+
     _mesh = Bcube.Mesh(
         _nodes,
         Bcube.cells(mesh),
         _conn;
-        bc_names = Bcube.boundary_names(mesh),
+        bc_names = _bcnames,
         bc_nodes = _bc_nodes,
+        absoluteCellIndices = Bcube.get_absolute_cell_indices(mesh),
+        absoluteNodeIndices = Bcube.get_absolute_node_indices(mesh)[indRealNodes],
+        metadata = Bcube.get_metadata(mesh),
     )
-    Bcube.add_absolute_indices!(_mesh, :node, _absolute_node_indices)
-    Bcube.add_absolute_indices!(_mesh, :cell, _absolute_cell_indices)
 
     return _mesh
 end
@@ -108,8 +123,9 @@ function tag_ghost_nodes(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm::MP
     n_bnd = length(Bcube.boundary_names(mesh))
 
     # Global numbering
-    node_l2g = Bcube.absolute_indices(mesh, :node)
-    cell_l2g = Bcube.absolute_indices(mesh, :cell)
+    node_l2g = Bcube.get_absolute_node_indices(mesh)
+    cell_l2g = Bcube.get_absolute_cell_indices(mesh)
+    @show mypart, extrema(node_l2g)
 
     # Connectivities
     c2n = Bcube.connectivities_indices(mesh, :c2n)
@@ -165,16 +181,16 @@ function tag_ghost_nodes(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm::MP
         end
     end
 
-    # Now, we transform everything into vectors to obtain lid2gid, lid2part and values to exchange.
+    # Now, we transform everything into vectors to obtain lid2gid, lid2part and vals to exchange.
     # For lid2gid, we multiply the absolute numbering by the concerned partition number (to obtain a new global numbering)
     I, J, _ = findnz(node2part)
     lid2part = J
-    values = node2bnd_base2[I]
+    vals = node2bnd_base2[I]
     lid2gid = (J .- 1) .* l2g_max .+ node_l2g[I]
 
     # Build HauntedVector
-    x = HauntedVector(comm, lid2gid, lid2part, eltype(values))
-    parent(x) .= values
+    x = HauntedVector(comm, lid2gid, lid2part, eltype(vals))
+    parent(x) .= vals
 
     # Iterate
     x0 = copy(parent(x))
@@ -218,24 +234,29 @@ function tag_ghost_nodes(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm::MP
     # display(node2bnd)
 
     # Now, rebuild the dict of boundary nodes
-    _bc_nodes =
-        Dict(tag => findall(node2bnd[:, i]) for (i, tag) in enumerate(sorted_bnd_tags))
+    _bcnames = Dict(
+        boundary_tag(mesh, name) => String(name) for name in Bcube.boundary_names(mesh)
+    )
+
+    _bc_nodes = Dict(
+        boundary_tag(mesh, name) => findall(node2bnd[:, i]) for
+        (i, name) in enumerate(sorted_bnd_tags)
+    )
     # @one_at_a_time @show _bc_nodes
 
     # Create new mesh (necessary to recreate bnd_faces etc)
     # Rq : we could do it without re-creating a Mesh, but it's simpler to process like this for now
     _conn = Bcube.Connectivity([nnodes(e) for e in Bcube.cells(mesh)], vcat(c2n...))
-    _absolute_node_indices = Bcube.absolute_indices(mesh, :node)
-    _absolute_cell_indices = Bcube.absolute_indices(mesh, :cell)
+
     _mesh = Bcube.Mesh(
         get_nodes(mesh),
         Bcube.cells(mesh),
         _conn;
-        bc_names = Bcube.boundary_names(mesh),
+        bc_names = _bcnames,
         bc_nodes = _bc_nodes,
+        absoluteCellIndices = Bcube.get_absolute_cell_indices(mesh),
+        absoluteNodeIndices = Bcube.get_absolute_node_indices(mesh),
     )
-    Bcube.add_absolute_indices!(_mesh, :node, _absolute_node_indices)
-    Bcube.add_absolute_indices!(_mesh, :cell, _absolute_cell_indices)
 
     return _mesh
 end
@@ -249,8 +270,8 @@ function tag_ghost_nodes_v1(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm:
     mypart = MPI.Comm_rank(comm) + 1
     np = MPI.Comm_size(comm)
 
-    node_l2g = Bcube.absolute_indices(mesh, :node)
-    cell_l2g = Bcube.absolute_indices(mesh, :cell)
+    node_l2g = Bcube.get_absolute_node_indices(mesh)
+    cell_l2g = Bcube.get_absolute_cell_indices(mesh)
 
     # @one_at_a_time @show ghost_tag2part
 
@@ -352,8 +373,8 @@ function tag_ghost_nodes_v1(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm:
     # Create new mesh (necessary to recreate bnd_faces etc)
     # Rq : we could do it without re-creating a Mesh, but it's simpler to process like this for now
     _conn = Bcube.Connectivity([nnodes(e) for e in Bcube.cells(mesh)], vcat(c2n...))
-    _absolute_node_indices = Bcube.absolute_indices(mesh, :node)
-    _absolute_cell_indices = Bcube.absolute_indices(mesh, :cell)
+    _absolute_node_indices = Bcube.get_absolute_node_indices(mesh)
+    _absolute_cell_indices = Bcube.get_absolute_cell_indices(mesh)
     _mesh = Bcube.Mesh(
         get_nodes(mesh),
         Bcube.cells(mesh),
@@ -376,8 +397,8 @@ function tag_ghost_nodes_v2(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm:
     mypart = MPI.Comm_rank(comm) + 1
     np = MPI.Comm_size(comm)
 
-    node_l2g = Bcube.absolute_indices(mesh, :node)
-    cell_l2g = Bcube.absolute_indices(mesh, :cell)
+    node_l2g = Bcube.get_absolute_node_indices(mesh)
+    cell_l2g = Bcube.get_absolute_cell_indices(mesh)
 
     # We need to identify nodes belonging to ghost cells (even those who are also belonging to an owned cell).
     # Then we will need to assign a remote partition to each ghost node.
@@ -472,14 +493,15 @@ function tag_ghost_nodes_v2(mesh::Bcube.Mesh, ghost_tag2part, ghost_cells, comm:
     # Create new mesh (necessary to recreate bnd_faces etc)
     # Rq : we could do it without re-creating a Mesh, but it's simpler to process like this for now
     _conn = Bcube.Connectivity([nnodes(e) for e in Bcube.cells(mesh)], vcat(c2n...))
-    _absolute_node_indices = Bcube.absolute_indices(mesh, :node)
-    _absolute_cell_indices = Bcube.absolute_indices(mesh, :cell)
+    _absolute_node_indices = Bcube.get_absolute_node_indices(mesh)
+    _absolute_cell_indices = Bcube.get_absolute_cell_indices(mesh)
     _mesh = Bcube.Mesh(
         get_nodes(mesh),
         Bcube.cells(mesh),
         _conn;
         bc_names = Bcube.boundary_names(mesh),
         bc_nodes = _bc_nodes,
+        absol,
     )
     Bcube.add_absolute_indices!(_mesh, :node, _absolute_node_indices)
     Bcube.add_absolute_indices!(_mesh, :cell, _absolute_cell_indices)

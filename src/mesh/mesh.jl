@@ -18,8 +18,6 @@ const DMesh = DistributedMesh
 
 Base.parent(dmesh::DMesh) = dmesh.mesh
 
-Bcube.get_nodes(dmesh::DMesh) = Bcube.get_nodes(parent(dmesh))
-
 function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::Dict{Int, Int}, comm::MPI.Comm)
     ghost_tags = keys(ghost_tag2part)
 

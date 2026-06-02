@@ -171,12 +171,22 @@ function compute_dof_global_numbering(dhl::DofHandler, dmesh::DistributedMesh)
 end
 
 """
+    _compute_dof2part(
+        ghost_tag2part::AbstractDict,
+        mesh::Bcube.Mesh,
+        dhl::DofHandler,
+        my_part::Int,
+        nparts::Int,
+    )
+
 Identify, for each dof on the local mesh, the partition that owns that dof. If a dof is shared by two partitions,
 the partitions with the smallest id takes the ownership. The result mapping will actually be accurate only for
 dof owned by the local partition. For the other, i.e "ghost dofs", the result will be corrected later.
+
+`ghost_tag2part` is a Dict "global cell number => partition owning this cell"
 """
 function _compute_dof2part(
-    ghost_tag2part::Dict{Int, Int},
+    ghost_tag2part::AbstractDict,
     mesh::Bcube.Mesh,
     dhl::DofHandler,
     my_part::Int,

@@ -4,10 +4,10 @@ To be improved / redefined : all the attributes are not necessary
 Remark : identifiying ghost nodes is not trivial and requires several exhanges iterations
 between partitions. Since we don't need this info for now, it is not computed.
 """
-struct DistributedMesh{topoDim, spaceDim, M} <: Bcube.AbstractMesh{topoDim, spaceDim}
+struct DistributedMesh{topoDim, spaceDim, M, G} <: Bcube.AbstractMesh{topoDim, spaceDim}
     comm::MPI.Comm
     mesh::M
-    ghost_tag2part::Dict{Int, Int} # ghost-cell tag (=absolute id) => partition owning that ghost
+    ghost_tag2part::G # ghost-cell tag (=absolute id) => partition owning that ghost
     local_cells::Vector{Int} # Index of "local" (i.e handled by local partition) cells in mesh
     ghost_cells::Vector{Int} # Index of "ghost" (i.e handled by another partition) cells in mesh
 end
@@ -18,7 +18,7 @@ const DMesh = DistributedMesh
 
 Base.parent(dmesh::DMesh) = dmesh.mesh
 
-function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::Dict{Int, Int}, comm::MPI.Comm)
+function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::AbstractDict, comm::MPI.Comm)
     ghost_tags = keys(ghost_tag2part)
 
     # Allocate for local and ghost indices
@@ -49,7 +49,12 @@ function DistributedMesh(mesh::Bcube.Mesh, ghost_tag2part::Dict{Int, Int}, comm:
     # Tag ghost nodes
     mesh = tag_ghost_nodes(mesh, ghost_tag2part, ghost_cells, comm)
 
-    DistributedMesh{Bcube.topodim(mesh), Bcube.spacedim(mesh), typeof(mesh)}(
+    DistributedMesh{
+        Bcube.topodim(mesh),
+        Bcube.spacedim(mesh),
+        typeof(mesh),
+        typeof(ghost_tag2part),
+    }(
         comm,
         mesh,
         ghost_tag2part,

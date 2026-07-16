@@ -4,6 +4,7 @@ using MPIUtils
 using Bcube
 using BcubeGmsh
 using BcubeMPI
+using Test
 
 MPI.Initialized() || MPI.Init()
 comm = MPI.COMM_WORLD

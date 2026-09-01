@@ -107,6 +107,7 @@ end
 function main(stateInit, stateBcFarfield, degree)
     @only_root begin
         println("Building mesh...")
+        mkpath(outputpath)
         BcubeGmsh.gen_mesh_around_disk(
             joinpath(outputpath, "mesh.msh"),
             :tri;
@@ -118,8 +119,9 @@ function main(stateInit, stateBcFarfield, degree)
         )
     end
     MPI.Barrier(comm)
+    println("Reading mesh file...")
     mesh = read_partitioned_msh(joinpath(outputpath, "mesh.msh"), comm)
-    pprintln("ncells local = $(ncells(parent(mesh)))")
+    println("ncells local = $(ncells(parent(mesh)))")
 
     # Then we create a `NamedTuple` to hold the simulation parameters.
     params = (degquad = degquad, stateInit = stateInit, stateBcFarfield = stateBcFarfield)
@@ -323,6 +325,11 @@ function steady_solve_impl!(U, V, q, mesh, params, vtk)
 
         Q += dQ
         t += Δt
+
+        if i % 10 == 0
+            set_dof_values!(q, Q)
+            append_vtk(vtk, q, t, params)
+        end
     end
 
     return t, FEFunction(U, Q)

@@ -56,7 +56,7 @@ function compute_dof_global_numbering(dhl::DofHandler, dmesh::DistributedMesh)
 
     # Mesh numbering
     mesh = dmesh.mesh
-    ind2tag = Bcube.absolute_indices(mesh, :cell) # global id of cells, ghost included
+    ind2tag = Bcube.get_absolute_cell_indices(mesh) # global id of cells, ghost included
     tag2ind = Dict{Int, Int}(tag => ind for (ind, tag) in enumerate(ind2tag))
     #@one_at_a_time ((get_nvars(sys) == 1) && (@show dof2coords(sys, mesh))) # debug print
 
@@ -171,12 +171,22 @@ function compute_dof_global_numbering(dhl::DofHandler, dmesh::DistributedMesh)
 end
 
 """
+    _compute_dof2part(
+        ghost_tag2part::AbstractDict,
+        mesh::Bcube.Mesh,
+        dhl::DofHandler,
+        my_part::Int,
+        nparts::Int,
+    )
+
 Identify, for each dof on the local mesh, the partition that owns that dof. If a dof is shared by two partitions,
 the partitions with the smallest id takes the ownership. The result mapping will actually be accurate only for
 dof owned by the local partition. For the other, i.e "ghost dofs", the result will be corrected later.
+
+`ghost_tag2part` is a Dict "global cell number => partition owning this cell"
 """
 function _compute_dof2part(
-    ghost_tag2part::Dict{Int, Int},
+    ghost_tag2part::AbstractDict,
     mesh::Bcube.Mesh,
     dhl::DofHandler,
     my_part::Int,
@@ -196,7 +206,7 @@ function _compute_dof2part(
     # dof2tag[:,2] = (local dof index) -> local index in cell
     #dof2tag = zeros(Int, get_ndofs(dhl), 2)
 
-    ind2tag = Bcube.absolute_indices(mesh, :cell)
+    ind2tag = Bcube.get_absolute_cell_indices(mesh)
     for icell in 1:ncells(mesh)
         icell_g = ind2tag[icell]
         _isghost = haskey(ghost_tag2part, icell_g)

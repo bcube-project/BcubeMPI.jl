@@ -2,6 +2,7 @@ module test
 using MPI
 using MPIUtils
 using Bcube
+using BcubeGmsh
 using BcubeMPI
 
 MPI.Initialized() || MPI.Init()
@@ -12,9 +13,10 @@ np = MPI.Comm_size(comm)
 comm = MPI.COMM_WORLD
 
 mesh_path = joinpath(@__DIR__, "..", "myout", "mesh.msh")
+@only_root mkpath(dirname(mesh_path))
 
 function test1()
-    @only_root Bcube.gen_rectangle_mesh(
+    @only_root BcubeGmsh.gen_rectangle_mesh(
         mesh_path,
         :quad;
         nx = 3,
@@ -25,13 +27,25 @@ function test1()
     )
     MPI.Barrier(comm)
     mesh = read_partitioned_msh(mesh_path, comm)
-    node_l2g = Bcube.absolute_indices(parent(mesh), :node)
+    node_l2g = Bcube.get_absolute_node_indices(parent(mesh))
 
     @one_at_a_time begin
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 1)], [1, 2, 5])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 2)], [2, 3, 6])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 3)], [3, 4, 7])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 4)], [1, 4, 8])
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "South"))],
+            [1, 2, 5],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "East"))],
+            [2, 3, 6],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "North"))],
+            [3, 4, 7],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "West"))],
+            [1, 4, 8],
+        )
     end
 end
 
@@ -39,8 +53,8 @@ function test2()
     lx = 1
     ly = 2
     lz = 3
-    @only_root Bcube.gen_hexa_mesh(
-        "mesh.msh",
+    @only_root BcubeGmsh.gen_hexa_mesh(
+        mesh_path,
         :tetra;
         nx = 2,
         ny = 2,
@@ -60,14 +74,32 @@ function test2()
     MPI.Barrier(comm)
     mesh = read_partitioned_msh(mesh_path, comm)
 
-    node_l2g = Bcube.absolute_indices(parent(mesh), :node)
+    node_l2g = Bcube.get_absolute_node_indices(parent(mesh))
     @one_at_a_time begin
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 1)], [1, 4, 5, 8])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 2)], [2, 3, 6, 7])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 3)], [1, 2, 5, 6])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 4)], [3, 4, 7, 8])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 5)], [1, 2, 3, 4, 9])
-        @show issetequal(node_l2g[Bcube.boundary_nodes(parent(mesh), 6)], [5, 6, 7, 8, 10])
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "xmin"))],
+            [1, 4, 5, 8],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "xmax"))],
+            [2, 3, 6, 7],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "ymin"))],
+            [1, 2, 5, 6],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "ymax"))],
+            [3, 4, 7, 8],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "zmin"))],
+            [1, 2, 3, 4, 9],
+        )
+        @assert issetequal(
+            node_l2g[Bcube.boundary_nodes(parent(mesh), boundary_tag(mesh, "zmax"))],
+            [5, 6, 7, 8, 10],
+        )
     end
 end
 

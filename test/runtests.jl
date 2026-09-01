@@ -7,9 +7,10 @@ using Test
 # print("Hello world, I am rank $(MPI.Comm_rank(comm)) of $(MPI.Comm_size(comm))\n")
 # MPI.Barrier(comm)
 # MPI.Finalize()
-include("run_mpi.jl")
+include("utils.jl")
 
 @testset "BcubeMPI.jl" begin
     @test 1 === 1
     run_mpi(; nprocs = 4, filename = "test_hello.jl")
+    run_mpi(; nprocs = 3, filename = "test_np.jl")
 end

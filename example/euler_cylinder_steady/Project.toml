@@ -20,6 +20,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 
 [sources]
+BcubeMPI = {path = "../.."}
 HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
 HauntedArrays2PetscWrap = {url = "https://github.com/bmxam/HauntedArrays2PetscWrap.jl"}
 MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}

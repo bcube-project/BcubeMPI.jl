@@ -12,14 +12,13 @@ using HauntedArrays
 using Symbolics
 using HauntedArrays2PetscWrap
 using SparseDiffTools
-using Test
 
 include(joinpath(@__DIR__, "common.jl"))
 println("done loading modules")
 
 const is_tested = get(ENV, "TestMode", "false") == "true"
 if is_tested
-    import ..Tester: test_ref
+    include(joinpath(@__DIR__, "..", "..", "test", "utils.jl"))
 end
 
 function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
@@ -48,7 +47,7 @@ function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
             "u" => (values, VTKCellData()),
             "rank" => (rank .* ones(ncells(vtk.mesh)), VTKCellData()),
         );
-        append = vtk.ite > 0,
+        append=vtk.ite > 0,
     )
 
     # Update counter
@@ -65,12 +64,12 @@ function timeintegration_expl(m, l, U, V, cbset, dmesh)
     M = assemble_bilinear(m, U, V)
 
     # Parameters and time span to solve
-    p = (M = M, U = U, V = V, vtk = vtk, l = l, iter = zeros(Int, 1), time = zeros(1000))
+    p = (M=M, U=U, V=V, vtk=vtk, l=l, iter=zeros(Int, 1), time=zeros(1000))
     tspan = (0.0, totalTime)
 
     prob = ODEProblem(f_expl!, Bcube.allocate_dofs(U), tspan, p)
     @only_root println("Running explicit solve...")
-    solve(prob, Euler(); dt = Δt, callback = cbset, save_everystep = false)
+    solve(prob, Euler(); dt=Δt, callback=cbset, save_everystep=false)
 end
 
 function timeintegration_impl_dense(m, l, U, V, cbset, dmesh)
@@ -84,17 +83,17 @@ function timeintegration_impl_dense(m, l, U, V, cbset, dmesh)
     M = HauntedMatrix(M, q0) # sparse matrix -> haunted sparse matrix
 
     # Parameters and time span to solve
-    p = (U = U, V = V, vtk = vtk, l = l, iter = zeros(Int, 1), time = zeros(1000))
+    p = (U=U, V=V, vtk=vtk, l=l, iter=zeros(Int, 1), time=zeros(1000))
     tspan = (0.0, totalTime)
 
-    odeFunction = ODEFunction(rhs!; mass_matrix = M)
+    odeFunction = ODEFunction(rhs!; mass_matrix=M)
     prob = ODEProblem(odeFunction, q0, tspan, p)
     @only_root println("Running implicit (dense) solve...")
     solve(
         prob,
-        ImplicitEuler(; linsolve = PetscFactorization());
-        callback = cbset,
-        save_everystep = false,
+        ImplicitEuler(; linsolve=PetscFactorization());
+        callback=cbset,
+        save_everystep=false,
     )
 end
 
@@ -111,7 +110,7 @@ function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     M = HauntedMatrix(M, q0) # sparse matrix -> haunted sparse matrix
 
     # Parameters and time span to solve
-    p = (U = U, V = V, vtk = vtk, l = l, iter = zeros(Int, 1), time = zeros(1000))
+    p = (U=U, V=V, vtk=vtk, l=l, iter=zeros(Int, 1), time=zeros(1000))
     tspan = (0.0, totalTime)
 
     # Jacobian cache
@@ -124,14 +123,14 @@ function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     colors = matrix_colors(jac)
 
     # Solve !
-    odeFunction = ODEFunction(rhs!; mass_matrix = M, jac_prototype = jac, colorvec = colors)
+    odeFunction = ODEFunction(rhs!; mass_matrix=M, jac_prototype=jac, colorvec=colors)
     prob = ODEProblem(odeFunction, q0, tspan, p)
     @only_root println("Running implicit (sparse) solve...")
     sol = solve(
         prob,
-        ImplicitEuler(; linsolve = PetscFactorization());
-        callback = cbset,
-        save_everystep = false,
+        ImplicitEuler(; linsolve=PetscFactorization());
+        callback=cbset,
+        save_everystep=false,
     )
 
     # BELOW IS FOR PROFILING
@@ -151,6 +150,7 @@ function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     # BELOW IS FOR TESTING
     if is_tested
         results = test_ref("linear-transport-diffeq-rank$(rank).jld2", sol.x)
+        error("need to write the file on 1p only")
         open(joinpath(@__DIR__, "results.csv")) do io
             println(io, join(results, ","))
         end
@@ -159,7 +159,7 @@ end
 
 function rhs!(dQ, Q, p, t)
     # Update the FEFunction (ghost are updated via callback)
-    u = FEFunction(p.U, Q; updateGhosts = false)
+    u = FEFunction(p.U, Q; updateGhosts=false)
 
     # Compute linear forms
     dQ .= zero(eltype(Q))
@@ -186,10 +186,10 @@ function run()
     @only_root begin
         isdir(out_dir) || mkpath(out_dir)
         foreach(
-            path -> rm(path; recursive = true),
+            path -> rm(path; recursive=true),
             filter(
                 filename -> startswith(basename(filename), "linear_transport_"),
-                readdir(out_dir; join = true),
+                readdir(out_dir; join=true),
             ),
         )
     end
@@ -200,15 +200,15 @@ function run()
     @only_root BcubeGmsh.gen_rectangle_mesh(
         tmp_path,
         :quad;
-        nx = nx,
-        ny = ny,
-        lx = lx,
-        ly = ly,
-        xc = 0.0,
-        yc = 0.0,
-        split_files = true,
-        n_partitions = np,
-        create_ghosts = true,
+        nx=nx,
+        ny=ny,
+        lx=lx,
+        ly=ly,
+        xc=0.0,
+        yc=0.0,
+        split_files=true,
+        n_partitions=np,
+        create_ghosts=true,
     )
     MPI.Barrier(comm) # wait for the mesh to be generated by proc 0
 
@@ -217,7 +217,7 @@ function run()
 
     # Define function space, FE spaces and the FEFunction
     fs = FunctionSpace(:Taylor, degree)
-    U = TrialFESpace(fs, mesh, :discontinuous; cacheType = PetscCache)
+    U = TrialFESpace(fs, mesh, :discontinuous; cacheType=PetscCache)
     V = TestFESpace(U)
 
     # Define measures for cell and interior face integrations
@@ -261,14 +261,14 @@ function run()
 
             @only_root @show integrator.t
         end;
-        save_positions = (false, false),
+        save_positions=(false, false),
     )
     cb_update = DiscreteCallback(
         always_true,
         integrator -> begin
             HauntedArrays.update_ghosts!(integrator.u)
         end;
-        save_positions = (false, false),
+        save_positions=(false, false),
     )
     cb_timer = DiscreteCallback(
         always_true,
@@ -277,7 +277,7 @@ function run()
             p.iter[1] += 1
             p.time[p.iter[1]] = time()
         end;
-        save_positions = (false, false),
+        save_positions=(false, false),
     )
     cbset = CallbackSet(cb_update, cb_vtk)
     if bench

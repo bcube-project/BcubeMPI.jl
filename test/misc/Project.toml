@@ -1,0 +1,14 @@
+[deps]
+Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
+BcubeGmsh = "8c8b3700-392b-4630-b974-b8b78831232a"
+BcubeMPI = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+MPIUtils = "d2fda7fa-1d8f-42bf-b3ab-bccc7e8e7842"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+ReferenceTests = "324d217c-45ce-50fc-942e-d289b448e8cf"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[sources]
+BcubeMPI = {path = "../.."}
+MPIUtils = {rev = "master", url = "https://github.com/bmxam/MPIUtils.jl"}

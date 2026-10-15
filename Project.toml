@@ -1,7 +1,7 @@
 name = "BcubeMPI"
 uuid = "7a349a50-e992-4b55-b2ad-27ebb30b8e81"
-authors = ["Ghislain Blanchard, Lokman Bennani and Maxime Bouyges"]
 version = "0.1.4"
+authors = ["Ghislain Blanchard, Lokman Bennani and Maxime Bouyges"]
 
 [deps]
 Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
@@ -18,8 +18,8 @@ WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 gmsh_jll = "630162c2-fc9b-58b3-9910-8442a8a132e6"
 
 [sources]
-HauntedArrays = {url = "https://github.com/bmxam/HauntedArrays.jl"}
-MPIUtils = {url = "https://github.com/bmxam/MPIUtils.jl"}
+HauntedArrays = {rev = "master", url = "https://github.com/bmxam/HauntedArrays.jl"}
+MPIUtils = {rev = "master", url = "https://github.com/bmxam/MPIUtils.jl"}
 
 [compat]
 Bcube = "0.4.2"

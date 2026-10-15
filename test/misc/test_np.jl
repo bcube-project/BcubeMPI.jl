@@ -7,7 +7,6 @@ using BcubeMPI
 
 include(joinpath(@__DIR__, "..", "utils.jl"))
 
-
 MPI.Initialized() || MPI.Init()
 comm = MPI.COMM_WORLD
 np = MPI.Comm_size(comm)
@@ -23,11 +22,11 @@ function test1()
     @only_root BcubeGmsh.gen_rectangle_mesh(
         mesh_path,
         :quad;
-        nx=3,
-        ny=3,
-        n_partitions=np,
-        split_files=true,
-        create_ghosts=true,
+        nx = 3,
+        ny = 3,
+        n_partitions = np,
+        split_files = true,
+        create_ghosts = true,
     )
     MPI.Barrier(comm)
     mesh = read_partitioned_msh(mesh_path, comm)
@@ -60,20 +59,20 @@ function test2()
     @only_root BcubeGmsh.gen_hexa_mesh(
         mesh_path,
         :tetra;
-        nx=2,
-        ny=2,
-        nz=2,
+        nx = 2,
+        ny = 2,
+        nz = 2,
         lx,
         ly,
         lz,
-        xc=lx / 2,
-        yc=ly / 2,
-        zc=lz / 2,
-        transfinite_lines=true,
-        transfinite=false,
-        n_partitions=np,
-        split_files=true,
-        create_ghosts=true,
+        xc = lx / 2,
+        yc = ly / 2,
+        zc = lz / 2,
+        transfinite_lines = true,
+        transfinite = false,
+        n_partitions = np,
+        split_files = true,
+        create_ghosts = true,
     )
     MPI.Barrier(comm)
     mesh = read_partitioned_msh(mesh_path, comm)
@@ -106,7 +105,6 @@ function test2()
         )
     end
 end
-
 
 counts = @custom_test begin
     test1()

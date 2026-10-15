@@ -41,13 +41,16 @@ end
 
 EXAMPLE_DIR = joinpath(@__DIR__, "..", "example")
 filepaths = (
-    joinpath(EXAMPLE_DIR, "linear_transport_diffeq", "linear_transport_single_par_diffeq.jl"),
+    joinpath(
+        EXAMPLE_DIR,
+        "linear_transport_diffeq",
+        "linear_transport_single_par_diffeq.jl",
+    ),
     joinpath(EXAMPLE_DIR, "euler_cylinder_steady", "euler_cylinder_steady_par.jl"),
     joinpath(@__DIR__, "misc", "test_np.jl"),
 )
 
 @testset "BcubeMPI" begin
-
     for filepath in filepaths
         dir = dirname(filepath)
         filename = basename(filepath)

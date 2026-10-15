@@ -3,7 +3,7 @@ using SparseArrays
 using ReferenceTests
 using MPIUtils
 
-function run_mpi(; nprocs=1, filepath)
+function run_mpi(; nprocs = 1, filepath)
     dir = dirname(filepath)
     mpiexec() do cmd
         run(`$cmd -n $nprocs $(Base.julia_cmd()) --project=$dir $filepath`)
@@ -42,7 +42,7 @@ julia> scientific_format(pi)
 "3.1415926536e+00"
 ```
 """
-scientific_format(x, digits=10) = format(Format("%10.$(digits)e"), x)
+scientific_format(x, digits = 10) = format(Format("%10.$(digits)e"), x)
 
 """
     get_ref_checksum(key)
@@ -67,9 +67,9 @@ computing the checksum. Optional argument `digits` specifies the exact
 number of digits that are kept after the decimal point character.
 The default precision is `10`.
 """
-function compute_checksum(array::AbstractArray{<:Number}; digits=10)
+function compute_checksum(array::AbstractArray{<:Number}; digits = 10)
     path, _ = mktemp()
-    str_array = map(Base.Fix2(scientific_format, digits), round.(array; digits=digits))
+    str_array = map(Base.Fix2(scientific_format, digits), round.(array; digits = digits))
     writedlm(path, str_array)
     checksum = bytes2hex(open(sha256, path))
     return checksum
@@ -85,14 +85,14 @@ before computing the checksum. This option allows to control test
 failure due to floating-point precision.
 Note that the reference checksum must be generated with the same number of `digits`.
 """
-function compare_checksum(key, value; digits=10, verbose=true)
+function compare_checksum(key, value; digits = 10, verbose = true)
     _ref = get_ref_checksum(key)
-    _cur = compute_checksum(value; digits=digits)
+    _cur = compute_checksum(value; digits = digits)
     result = _cur == _ref
     if (!result) && verbose
-        printstyled("   ➡ TEST FAIL : key = ", key, " \n"; color=:light_black)
-        printstyled("      ↪ checksum ref = ", _ref, " \n"; color=:light_black)
-        printstyled("      ↪ checksum     = ", _cur, " \n"; color=:light_black)
+        printstyled("   ➡ TEST FAIL : key = ", key, " \n"; color = :light_black)
+        printstyled("      ↪ checksum ref = ", _ref, " \n"; color = :light_black)
+        printstyled("      ↪ checksum     = ", _cur, " \n"; color = :light_black)
     end
     return result
 end
@@ -124,8 +124,8 @@ of equal values, with a relative tolerance `rtol` and
 an absolute tolerance `atol`.
 """
 function compare(
-    d1::Dict{String,<:AbstractArray},
-    d2::Dict{String,<:AbstractArray};
+    d1::Dict{String, <:AbstractArray},
+    d2::Dict{String, <:AbstractArray};
     atol,
     rtol,
 )
@@ -176,7 +176,7 @@ function compare(
     end
     return true
 end
-compare(; atol::Real=1.0e-12, rtol::Real=1.0e-12) = (a, b) -> compare(a, b; atol, rtol)
+compare(; atol::Real = 1.0e-12, rtol::Real = 1.0e-12) = (a, b) -> compare(a, b; atol, rtol)
 
 """
 Use with
@@ -212,17 +212,17 @@ macro custom_test(action)
         if VERSION < v"1.11"
             # passes, fails, errors, broken, c_passes, c_fails, c_errors, c_broken, duration
             counts = (;
-                passes=results[1],
-                fails=results[2],
-                errors=results[3],
-                broken=results[4],
+                passes = results[1],
+                fails = results[2],
+                errors = results[3],
+                broken = results[4],
             )
         else
             counts = (;
-                passes=results.passes,
-                errors=results.errors,
-                fails=results.fails,
-                broken=results.broken,
+                passes = results.passes,
+                errors = results.errors,
+                fails = results.fails,
+                broken = results.broken,
             )
         end
         # return counts
@@ -244,7 +244,7 @@ If `data` is not a valid subtype for the defaut test strategy, one could :
 - provide another test function with the keyword argument `comp`.
 The function must have the same signature as `Base.isequal` function.
 """
-function test_ref(filename_ref::String, data, comp::Function=compare())
+function test_ref(filename_ref::String, data, comp::Function = compare())
     return @custom_test begin
         println("Testing against $(filename_ref)")
         @test_reference refpath(filename_ref) _as_dict(data) by = comp
@@ -267,15 +267,12 @@ mutable struct CollectTestSet <: Test.AbstractTestSet
     showtiming::Bool
     results::Vector{Any}
 
-    CollectTestSet(desc; showtiming=false, kwargs...) =
-        new(desc, showtiming, Any[])
+    CollectTestSet(desc; showtiming = false, kwargs...) = new(desc, showtiming, Any[])
 end
 
-Test.record(ts::CollectTestSet, t::Test.Result) =
-    push!(ts.results, t)
+Test.record(ts::CollectTestSet, t::Test.Result) = push!(ts.results, t)
 
-Test.record(ts::CollectTestSet, t::Test.AbstractTestSet) =
-    push!(ts.results, t)
+Test.record(ts::CollectTestSet, t::Test.AbstractTestSet) = push!(ts.results, t)
 
 function Test.finish(ts::CollectTestSet)
     if Test.get_testset_depth() > 0
@@ -342,11 +339,10 @@ end
 """
 Collective operation if `comm ≠ nothing` : sum tests counts and write to file
 """
-function write_test_counts(filepath, counts, comm=nothing; append=false)
+function write_test_counts(filepath, counts, comm = nothing; append = false)
     counts_sum = isnothing(comm) ? counts : reduce_counts(counts, comm)
 
     @only_root begin
-
         if append
             old_counts = read_test_counts(filepath)
             for k in keys(old_counts)
@@ -367,7 +363,6 @@ function read_test_counts(filepath)
     passes, errors, fails, broken = parse.(Int, line)
     return (; passes, errors, fails, broken)
 end
-
 
 function print_centered_with_hash(s::String, n::Int)
     @assert n > 4 + length(s)

@@ -6,23 +6,7 @@ const TEST_DIR = @__DIR__
 const UTILS_PATH = joinpath(TEST_DIR, "utils.jl")
 const REMOVE_TMP_FILES = true
 
-function print_centered_with_hash(s::String, n::Int)
-    @assert n > 4 + length(s)
-
-    total_padding = n - 4 - length(s)
-    left_padding = div(total_padding, 2)
-    right_padding = total_padding - left_padding
-
-    centered = "##" * " "^left_padding * s * " "^right_padding * "##"
-
-    println(repeat("#", n))
-    println(repeat("#", n))
-    println("##" * " "^(n - 4) * "##")
-    println(centered)
-    println("##" * " "^(n - 4) * "##")
-    println(repeat("#", n))
-    println(repeat("#", n))
-end
+include(UTILS_PATH)
 
 Pkg.activate(TEST_DIR)
 Pkg.instantiate()
@@ -57,12 +41,8 @@ end
 
 EXAMPLE_DIR = joinpath(@__DIR__, "..", "example")
 filepaths = (
-    # joinpath(
-    #     EXAMPLE_DIR,
-    #     "linear_transport_diffeq",
-    #     "linear_transport_single_par_diffeq.jl",
-    # ),
-    # joinpath(EXAMPLE_DIR, "euler_cylinder_steady", "euler_cylinder_steady_par.jl"),
+    joinpath(EXAMPLE_DIR, "linear_transport_diffeq", "linear_transport_single_par_diffeq.jl"),
+    joinpath(EXAMPLE_DIR, "euler_cylinder_steady", "euler_cylinder_steady_par.jl"),
     joinpath(@__DIR__, "misc", "test_np.jl"),
 )
 
@@ -118,9 +98,7 @@ end
 
             # Check the results
             if isfile(results_path)
-                lines = readlines(results_path)
-                line = split(lines[2], ',')
-                passes, errors, fails, broken = parse.(Int, line)
+                passes, errors, fails, broken = read_test_counts(results_path)
 
                 # Check that at least one test did run
                 # So that we can display "Total = 0" if no test are present

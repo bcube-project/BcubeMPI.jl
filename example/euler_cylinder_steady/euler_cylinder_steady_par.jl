@@ -24,6 +24,11 @@ using MPIUtils
 include(joinpath(@__DIR__, "common_euler.jl"))
 println("done loading modules !")
 
+const is_tested = get(ENV, "TestMode", "false") == "true"
+if is_tested
+    include(joinpath(@__DIR__, "..", "..", "test", "utils.jl"))
+end
+
 # Init Petsc, you can pass arguments to control the linear system algorithm
 # init_petsc("-pc_type lu") # for a direct solver (MUMPS)
 init_petsc() # default iterative solver : ILU(0) + GMRES
@@ -43,7 +48,7 @@ end
     Write solution (at cell centers) to vtk
     Wrapper for `write_vtk`
 """
-function append_vtk(vtk, vars, t, params; res = nothing)
+function append_vtk(vtk, vars, t, params; res=nothing)
     mesh = parent(vtk.mesh)
     ρ, ρu, ρE = vars
     # println("call to append_vtk")
@@ -95,7 +100,7 @@ function append_vtk(vtk, vars, t, params; res = nothing)
         t,
         vtk.mesh,
         dict_vars_dg;
-        append = vtk.ite > 0,
+        append=vtk.ite > 0,
     )
 
     # Update counter
@@ -111,11 +116,11 @@ function main(stateInit, stateBcFarfield, degree)
         BcubeGmsh.gen_mesh_around_disk(
             joinpath(outputpath, "mesh.msh"),
             :tri;
-            nθ = 4 * 20,
-            nr = 25,
-            split_files = true,
-            n_partitions = np,
-            create_ghosts = true,
+            nθ=4 * 20,
+            nr=25,
+            split_files=true,
+            n_partitions=np,
+            create_ghosts=true,
         )
     end
     MPI.Barrier(comm)
@@ -124,7 +129,7 @@ function main(stateInit, stateBcFarfield, degree)
     println("ncells local = $(ncells(parent(mesh)))")
 
     # Then we create a `NamedTuple` to hold the simulation parameters.
-    params = (degquad = degquad, stateInit = stateInit, stateBcFarfield = stateBcFarfield)
+    params = (degquad=degquad, stateInit=stateInit, stateBcFarfield=stateBcFarfield)
 
     # Define measures for cell and interior face integrations
     dΩ = Measure(CellDomain(mesh), degquad)
@@ -132,26 +137,26 @@ function main(stateInit, stateBcFarfield, degree)
 
     # Declare boundary conditions and
     # create associated domains and measures
-    Γ_wall      = BoundaryFaceDomain(mesh, ("Wall",))
-    Γ_farfield  = BoundaryFaceDomain(mesh, ("Farfield",))
-    dΓ_wall     = Measure(Γ_wall, degquad)
+    Γ_wall = BoundaryFaceDomain(mesh, ("Wall",))
+    Γ_farfield = BoundaryFaceDomain(mesh, ("Farfield",))
+    dΓ_wall = Measure(Γ_wall, degquad)
     dΓ_farfield = Measure(Γ_farfield, degquad)
 
     params = (
         params...,
-        Γ_wall = Γ_wall,
-        dΓ = dΓ,
-        dΩ = dΩ,
-        dΓ_wall = dΓ_wall,
-        dΓ_farfield = dΓ_farfield,
+        Γ_wall=Γ_wall,
+        dΓ=dΓ,
+        dΩ=dΩ,
+        dΓ_wall=dΓ_wall,
+        dΓ_farfield=dΓ_farfield,
     )
 
     deg = degree
-    params = (params..., degree = deg)
+    params = (params..., degree=deg)
 
     fs = FunctionSpace(fspace, deg)
-    U_sca = TrialFESpace(fs, mesh, :discontinuous; size = 1, cacheType = PetscCache) # DG, scalar
-    U_vec = TrialFESpace(fs, mesh, :discontinuous; size = 2, cacheType = PetscCache) # DG, vectoriel
+    U_sca = TrialFESpace(fs, mesh, :discontinuous; size=1, cacheType=PetscCache) # DG, scalar
+    U_vec = TrialFESpace(fs, mesh, :discontinuous; size=2, cacheType=PetscCache) # DG, vectoriel
     V_sca = TestFESpace(U_sca)
     V_vec = TestFESpace(U_vec)
     U = MultiFESpace(U_sca, U_vec, U_sca)
@@ -203,7 +208,7 @@ function steady_solve_expl!(U, V, q, mesh, params, vtk)
     # Linear form
     function l(q, v)
         ∫(flux_Ω(q, v))dΩ - ∫(flux_Γ(q, v, nΓ))dΓ - ∫(flux_Γ_wall(q, v, nΓ_wall))dΓ_wall -
-        ∫(flux_Γ_farfield(q, v, nΓ_farfield))dΓ_farfield
+            ∫(flux_Γ_farfield(q, v, nΓ_farfield))dΓ_farfield
     end
 
     # Create a HauntedVector initialized with the value of `q`
@@ -220,9 +225,9 @@ function steady_solve_expl!(U, V, q, mesh, params, vtk)
 
     # Since the mass matrix will be constant, build the PETSC KSP once and for all
     _A = HauntedArrays2PetscWrap.get_updated_petsc_array(M)
-    ksp = PetscWrap.create_ksp(_A; autosetup = true, add_finalizer = false)
+    ksp = PetscWrap.create_ksp(_A; autosetup=true, add_finalizer=false)
 
-    p = (U = U, V = V, l = l, params = params, counter = [0], vtk = vtk)
+    p = (U=U, V=V, l=l, params=params, counter=[0], vtk=vtk)
 
     dt = 1e-6
     t = 0.0
@@ -248,6 +253,19 @@ function steady_solve_expl!(U, V, q, mesh, params, vtk)
     # Free the KSP
     PetscWrap.destroy(ksp)
 
+    # Regression test
+    if is_tested
+        ref_dir = joinpath(@__DIR__, "..", "..", "test", "references")
+        array_gathered = HauntedArrays.gather(Q)
+        @only_root begin
+            results = test_ref(
+                joinpath(ref_dir, "euler-cylinder-steady-expl.jld2"),
+                array_gathered,
+            )
+            write_test_counts(joinpath(@__DIR__, "results.csv"), results)
+        end
+    end
+
     return t, FEFunction(U, Q)
 end
 
@@ -266,10 +284,10 @@ function steady_solve_impl!(U, V, q, mesh, params, vtk)
     # Linear form
     function l(q, v)
         ∫(flux_Ω(q, v))dΩ - ∫(flux_Γ(q, v, nΓ))dΓ - ∫(flux_Γ_wall(q, v, nΓ_wall))dΓ_wall -
-        ∫(flux_Γ_farfield(q, v, nΓ_farfield))dΓ_farfield
+            ∫(flux_Γ_farfield(q, v, nΓ_farfield))dΓ_farfield
     end
 
-    p = (U = U, V = V, l = l, params = params, counter = [0], vtk = vtk)
+    p = (U=U, V=V, l=l, params=params, counter=[0], vtk=vtk)
 
     # Create a HauntedVector initialized with the value of `q`
     # Q0 = get_dof_values(q) # errors since `get_dof_values` is implemented with a `mapreduce`...
@@ -291,7 +309,7 @@ function steady_solve_impl!(U, V, q, mesh, params, vtk)
     f! = (y, x) -> rhs!(y, x, p, 0.0)
     _x = similar(Q)
     _dx = similar(Q)
-    jac_cache = ForwardColorJacCache(f!, _x, nothing; dx = _dx, colorvec, sparsity)
+    jac_cache = ForwardColorJacCache(f!, _x, nothing; dx=_dx, colorvec, sparsity)
 
     Δt = 1e-6
     t = 0.0
@@ -316,7 +334,7 @@ function steady_solve_impl!(U, V, q, mesh, params, vtk)
         # Solve linear system
         _A = HauntedArrays2PetscWrap.get_updated_petsc_array(A)
         _b = HauntedArrays2PetscWrap.get_updated_petsc_array(Δt .* rhs)
-        ksp = PetscWrap.create_ksp(_A; autosetup = true, add_finalizer = false)
+        ksp = PetscWrap.create_ksp(_A; autosetup=true, add_finalizer=false)
         dQ = similar(rhs)
         _x = HauntedArrays2PetscWrap.get_updated_petsc_array(dQ)
         PetscWrap.solve(ksp, _b, _x)
@@ -352,10 +370,10 @@ function steady_solve_impl_diffeq!(U, V, q, mesh, params, vtk)
     # Linear form
     function l(q, v)
         ∫(flux_Ω(q, v))dΩ - ∫(flux_Γ(q, v, nΓ))dΓ - ∫(flux_Γ_wall(q, v, nΓ_wall))dΓ_wall -
-        ∫(flux_Γ_farfield(q, v, nΓ_farfield))dΓ_farfield
+            ∫(flux_Γ_farfield(q, v, nΓ_farfield))dΓ_farfield
     end
 
-    ode_params = (U = U, V = V, l = l, params = params, counter = [0], vtk = vtk)
+    ode_params = (U=U, V=V, l=l, params=params, counter=[0], vtk=vtk)
 
     # Create a HauntedVector initialized with the value of `q`
     # Q0 = get_dof_values(q) # errors since `get_dof_values` is implemented with a `mapreduce`...
@@ -375,21 +393,21 @@ function steady_solve_impl_diffeq!(U, V, q, mesh, params, vtk)
     jac_prototype = HauntedMatrix(Float64.(sparsity_pattern) + I, Q0) # +I to ensure diag belongs to sparsity pattern
     colorvec = matrix_colors(jac_prototype)
 
-    ode = ODEFunction(rhs!; mass_matrix = M, jac_prototype, colorvec)
+    ode = ODEFunction(rhs!; mass_matrix=M, jac_prototype, colorvec)
 
     timestepper = ImplicitEuler(;
-        linsolve = PetscFactorization(),
-        nlsolve = NLNewton(; max_iter = 20),
+        linsolve=PetscFactorization(),
+        nlsolve=NLNewton(; max_iter=20),
     )
 
-    Tfinal  = Inf
+    Tfinal = Inf
     problem = ODEProblem(ode, Q0, (0.0, Tfinal), ode_params)
 
     cb_update = DiscreteCallback(always_true, integrator -> begin
         HauntedArrays.update_ghosts!(integrator.u)
-    end; save_positions = (false, false))
-    cb_cache  = DiscreteCallback(always_true, update_cache!; save_positions = (false, false))
-    cb_vtk    = DiscreteCallback(always_true, output_vtk; save_positions = (false, false))
+    end; save_positions=(false, false))
+    cb_cache = DiscreteCallback(always_true, update_cache!; save_positions=(false, false))
+    cb_vtk = DiscreteCallback(always_true, output_vtk; save_positions=(false, false))
     cb_steady = TerminateSteadyState(1e-6, 1e-6, condition_steadystate)
 
     error = 1e-1
@@ -398,16 +416,16 @@ function steady_solve_impl_diffeq!(U, V, q, mesh, params, vtk)
     sol = OrdinaryDiffEq.solve(
         problem,
         timestepper;
-        dt = 1e-7,
-        initializealg = NoInit(),
-        abstol = error,
-        reltol = error,
-        progress = false,
-        progress_steps = 1000,
-        save_everystep = false,
-        save_start = false,
-        save_end = false,
-        callback = CallbackSet(cb_update, cb_cache, cb_vtk, cb_steady),
+        dt=1e-7,
+        initializealg=NoInit(),
+        abstol=error,
+        reltol=error,
+        progress=false,
+        progress_steps=1000,
+        save_everystep=false,
+        save_start=false,
+        save_end=false,
+        callback=CallbackSet(cb_update, cb_cache, cb_vtk, cb_steady),
     )
 
     return sol.t[end], FEFunction(U, sol.u[end])
@@ -444,27 +462,27 @@ const mesh_degree = 1
 const fspace = :Taylor
 
 const stateInit = (
-    AoA = deg2rad(0.0),
-    M_inf = 0.1,
-    P_inf = 101325.0,
-    T_inf = 275.0,
-    r_gas = 287.0,
-    γ = 1.4,
+    AoA=deg2rad(0.0),
+    M_inf=0.1,
+    P_inf=101325.0,
+    T_inf=275.0,
+    r_gas=287.0,
+    γ=1.4,
 )
 const nout = 1 # number of step between two vtk outputs
 const degquad = 6
 const outputpath = joinpath(@__DIR__, "..", "..", "tmp", "euler_cylinder_steady_par")
 @only_root begin
-    rm(outputpath; force = true, recursive = true)
+    rm(outputpath; force=true, recursive=true)
     mkdir(outputpath)
 end
 
 const stateBcFarfield = (
-    AoA = stateInit.AoA,
-    M_inf = stateInit.M_inf,
-    Pᵢ_inf = compute_Pᵢ(stateInit.P_inf, stateInit.γ, stateInit.M_inf),
-    Tᵢ_inf = compute_Tᵢ(stateInit.T_inf, stateInit.γ, stateInit.M_inf),
-    u_inf = bc_state_farfield(
+    AoA=stateInit.AoA,
+    M_inf=stateInit.M_inf,
+    Pᵢ_inf=compute_Pᵢ(stateInit.P_inf, stateInit.γ, stateInit.M_inf),
+    Tᵢ_inf=compute_Tᵢ(stateInit.T_inf, stateInit.γ, stateInit.M_inf),
+    u_inf=bc_state_farfield(
         stateInit.AoA,
         stateInit.M_inf,
         stateInit.P_inf,
@@ -472,8 +490,8 @@ const stateBcFarfield = (
         stateInit.r_gas,
         stateInit.γ,
     ),
-    r_gas = stateInit.r_gas,
-    γ = stateInit.γ,
+    r_gas=stateInit.r_gas,
+    γ=stateInit.γ,
 )
 
 main(stateInit, stateBcFarfield, degree)

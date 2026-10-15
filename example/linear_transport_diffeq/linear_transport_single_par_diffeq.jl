@@ -99,7 +99,8 @@ end
 
 function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     # Init VTK
-    rank = MPI.Comm_rank(BcubeMPI.get_comm(dmesh))
+    comm = BcubeMPI.get_comm(dmesh)
+    rank = MPI.Comm_rank(comm)
     vtk = VtkHandler(joinpath(out_dir, "linear_transport_impl_sparse"), dmesh)
 
     # Allocate vector of dofs (a HauntedVector)
@@ -149,10 +150,14 @@ function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
 
     # BELOW IS FOR TESTING
     if is_tested
-        results = test_ref("linear-transport-diffeq-rank$(rank).jld2", sol.x)
-        error("need to write the file on 1p only")
-        open(joinpath(@__DIR__, "results.csv")) do io
-            println(io, join(results, ","))
+        ref_dir = joinpath(@__DIR__, "..", "..", "test", "references")
+        array_gathered = HauntedArrays.gather(sol.u[end])
+        @only_root begin
+            results = test_ref(
+                joinpath(ref_dir, "linear-transport-diffeq.jld2"),
+                array_gathered,
+            )
+            write_test_counts(joinpath(@__DIR__, "results.csv"), results)
         end
     end
 end

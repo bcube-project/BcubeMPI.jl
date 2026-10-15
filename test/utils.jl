@@ -339,13 +339,50 @@ function reduce_counts(counts, comm)
     return (MPI.Comm_rank(comm) == 0) ? Tuple(recvbuf) : nothing
 end
 
-function write_test_counts(filepath, counts, comm)
-    counts_sum = reduce_counts(counts, comm)
+"""
+Collective operation if `comm ≠ nothing` : sum tests counts and write to file
+"""
+function write_test_counts(filepath, counts, comm=nothing; append=false)
+    counts_sum = isnothing(comm) ? counts : reduce_counts(counts, comm)
 
     @only_root begin
+
+        if append
+            old_counts = read_test_counts(filepath)
+            for k in keys(old_counts)
+                counts_sum[k] += old_counts[k]
+            end
+        end
+
         open(filepath, "w") do io
             println(io, "passes,errors,fails,broken")
             println(io, join(counts_sum, ","))
         end
     end
+end
+
+function read_test_counts(filepath)
+    lines = readlines(filepath)
+    line = split(lines[2], ',')
+    passes, errors, fails, broken = parse.(Int, line)
+    return (; passes, errors, fails, broken)
+end
+
+
+function print_centered_with_hash(s::String, n::Int)
+    @assert n > 4 + length(s)
+
+    total_padding = n - 4 - length(s)
+    left_padding = div(total_padding, 2)
+    right_padding = total_padding - left_padding
+
+    centered = "##" * " "^left_padding * s * " "^right_padding * "##"
+
+    println(repeat("#", n))
+    println(repeat("#", n))
+    println("##" * " "^(n - 4) * "##")
+    println(centered)
+    println("##" * " "^(n - 4) * "##")
+    println(repeat("#", n))
+    println(repeat("#", n))
 end

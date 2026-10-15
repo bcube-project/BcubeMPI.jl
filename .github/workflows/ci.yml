@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         version:
-          - "1.10"
+          - "1.13" # must be greater or equal to 1.11 because we need the [source] block in Project.toml
         os:
           - ubuntu-latest
         arch:

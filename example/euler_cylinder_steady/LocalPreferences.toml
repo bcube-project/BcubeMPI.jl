@@ -1,0 +1,26 @@
+# Force LinearSolve to load MKL_jll at module load (LoadMKL_JLL = true).
+#
+# Why: LinearSolve 3.26.0 (pinned via OrdinaryDiffEq = 6.97.0) skips
+# `using MKL_jll` when the "LoadMKL_JLL" preference resolves to false -- which is
+# also its DEFAULT on CPUs whose model string contains "EPYC" (e.g. the AMD EPYC
+# CPUs of GitHub Actions ubuntu-latest runners) -- but it still includes mkl.jl
+# unconditionally (src/LinearSolve.jl:160), where every ccall references
+# `MKL_jll.libmkl_rt`. On such machines precompilation dies with
+#   ERROR: UndefVarError: `MKL_jll` not defined in `LinearSolve`  (src/mkl.jl:11)
+# which is exactly the CI-only failure of run 38758262201 (PR #10): passes on
+# local Xeon (non-EPYC -> default true -> `using MKL_jll` runs), fails on the
+# EPYC runner. Forcing the preference to true restores the `using` everywhere:
+#   - MKL_jll 2025.2 wraps its artifact with LazyArtifacts, so merely loading
+#     the module does NOT download the ~300 MB MKL artifact;
+#   - `usemkl` becomes `MKL_jll.is_available()` and the MKL LU is never used at
+#     runtime anyway (implicit solves here go through PetscFactorization), so
+#     behaviour is unchanged;
+#   - upstream guards mkl.jl with `@static if !@isdefined(MKL_jll)` only in
+#     later versions (SciML/LinearSolve.jl #999), so with our pin the
+#     preference is the only robust lever.
+#
+# Note: the table is keyed by package name, and the name -> UUID mapping is
+# declared in the [extras] section of Project.toml (required by Base's
+# preference lookup).
+[LinearSolve]
+LoadMKL_JLL = true

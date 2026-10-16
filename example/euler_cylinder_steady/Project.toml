@@ -39,3 +39,9 @@ OrdinaryDiffEq = "=6.97.0"
 OrdinaryDiffEqDifferentiation = "=1.4.0"
 SparseDiffTools = "2.26"
 WriteVTK = "1.21"
+
+# LinearSolve is not a direct dependency (it comes via OrdinaryDiffEq / HauntedArrays2PetscWrap)
+# but is declared here so that the LoadMKL_JLL preference (see LocalPreferences.toml) can be
+# resolved: Base's preference lookup requires the name -> UUID mapping to exist in the project.
+[extras]
+LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"

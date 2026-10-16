@@ -36,3 +36,5 @@ tmp
 LocalPreferences.toml
 !example/linear_transport_diffeq/Manifest.toml
 !example/euler_cylinder_steady/Manifest.toml
+!example/linear_transport_diffeq/LocalPreferences.toml
+!example/euler_cylinder_steady/LocalPreferences.toml

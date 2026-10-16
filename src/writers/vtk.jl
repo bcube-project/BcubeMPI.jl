@@ -6,7 +6,7 @@ function write_pvtk(
     it::Int,
     time::Real,
     dmesh::DMesh{topoDim, spaceDim},
-    vars::Dict{String, Tuple{V, L}};
+    vars::Union{Nothing, Dict{String, Tuple{V, L}}};
     append = false,
     comm = MPI.COMM_WORLD,
 ) where {topoDim, spaceDim, V, L <: WriteVTK.AbstractFieldData}
@@ -42,19 +42,21 @@ function write_pvtk(
         # ghost_level = 0,
     )
 
-    for (varname, (value, loc)) in vars
-        if loc isa VTKPointData
-            pvtk[varname, loc] = value
-        elseif loc isa VTKCellData
-            if value isa AbstractVector
-                pvtk[varname, loc] = value[dmesh.local_cells]
-            elseif value isa AbstractMatrix
-                pvtk[varname, loc] = value[:, dmesh.local_cells]
+    if vars !== nothing
+        for (varname, (value, loc)) in vars
+            if loc isa VTKPointData
+                pvtk[varname, loc] = value
+            elseif loc isa VTKCellData
+                if value isa AbstractVector
+                    pvtk[varname, loc] = value[dmesh.local_cells]
+                elseif value isa AbstractMatrix
+                    pvtk[varname, loc] = value[:, dmesh.local_cells]
+                else
+                    error("value must be AbstractVector or AbstractMatrix")
+                end
             else
-                error("value must be AbstractVector or AbstractMatrix")
+                error("location must be VTKPointData or VTKCellData")
             end
-        else
-            error("location must be VTKPointData or VTKCellData")
         end
     end
 

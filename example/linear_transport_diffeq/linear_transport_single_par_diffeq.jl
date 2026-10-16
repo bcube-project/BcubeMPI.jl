@@ -12,8 +12,14 @@ using HauntedArrays
 using Symbolics
 using HauntedArrays2PetscWrap
 using SparseDiffTools
+
 include(joinpath(@__DIR__, "common.jl"))
 println("done loading modules")
+
+const is_tested = get(ENV, "TestMode", "false") == "true"
+if is_tested
+    include(joinpath(@__DIR__, "..", "..", "test", "utils.jl"))
+end
 
 function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
     # Values on centers
@@ -30,14 +36,17 @@ function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
     #     1;
     #     append = vtk.ite > 0,
     # )
-
+    rank = MPI.Comm_rank(BcubeMPI.get_comm(vtk.mesh))
     values = var_on_centers(u, parent(vtk.mesh))
     BcubeMPI.write_pvtk(
         vtk.basename,
         vtk.ite,
         t,
         vtk.mesh,
-        Dict("u" => (values, VTKCellData()));
+        Dict(
+            "u" => (values, VTKCellData()),
+            "rank" => (rank .* ones(ncells(vtk.mesh)), VTKCellData()),
+        );
         append = vtk.ite > 0,
     )
 
@@ -90,7 +99,8 @@ end
 
 function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     # Init VTK
-    rank = MPI.Comm_rank(BcubeMPI.get_comm(dmesh))
+    comm = BcubeMPI.get_comm(dmesh)
+    rank = MPI.Comm_rank(comm)
     vtk = VtkHandler(joinpath(out_dir, "linear_transport_impl_sparse"), dmesh)
 
     # Allocate vector of dofs (a HauntedVector)
@@ -117,7 +127,7 @@ function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
     odeFunction = ODEFunction(rhs!; mass_matrix = M, jac_prototype = jac, colorvec = colors)
     prob = ODEProblem(odeFunction, q0, tspan, p)
     @only_root println("Running implicit (sparse) solve...")
-    solve(
+    sol = solve(
         prob,
         ImplicitEuler(; linsolve = PetscFactorization());
         callback = cbset,
@@ -136,6 +146,17 @@ function timeintegration_impl_sparse(m, l, U, V, cbset, dmesh)
         #     callback = cb_update,
         #     save_everystep = false,
         # )
+    end
+
+    # BELOW IS FOR TESTING
+    if is_tested
+        ref_dir = joinpath(@__DIR__, "..", "..", "test", "references")
+        array_gathered = HauntedArrays.gather(sol.u[end])
+        @only_root begin
+            results =
+                test_ref(joinpath(ref_dir, "linear-transport-diffeq.jld2"), array_gathered)
+            write_test_counts(joinpath(@__DIR__, "results.csv"), results)
+        end
     end
 end
 
@@ -166,7 +187,7 @@ function run()
 
     # Output directory
     @only_root begin
-        isdir(out_dir) || mkdir(out_dir)
+        isdir(out_dir) || mkpath(out_dir)
         foreach(
             path -> rm(path; recursive = true),
             filter(
@@ -276,8 +297,8 @@ end
 const degree = 0 # Function-space degree (Taylor(0) = first order Finite Volume)
 const c = [1.0, 0.0] # Convection velocity (must be a vector)
 const CFL = 1 # 0.1 for degree 1
-const nx = 11 # Number of nodes in the x-direction
-const ny = 11 # Number of nodes in the y-direction
+const nx = 51 # Number of nodes in the x-direction
+const ny = 51 # Number of nodes in the y-direction
 const lx = 2.0 # Domain width
 const ly = 2.0 # Domain height
 const totalTime = 10.0

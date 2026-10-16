@@ -24,6 +24,11 @@ using MPIUtils
 include(joinpath(@__DIR__, "common_euler.jl"))
 println("done loading modules !")
 
+const is_tested = get(ENV, "TestMode", "false") == "true"
+if is_tested
+    include(joinpath(@__DIR__, "..", "..", "test", "utils.jl"))
+end
+
 # Init Petsc, you can pass arguments to control the linear system algorithm
 # init_petsc("-pc_type lu") # for a direct solver (MUMPS)
 init_petsc() # default iterative solver : ILU(0) + GMRES
@@ -107,6 +112,7 @@ end
 function main(stateInit, stateBcFarfield, degree)
     @only_root begin
         println("Building mesh...")
+        mkpath(outputpath)
         BcubeGmsh.gen_mesh_around_disk(
             joinpath(outputpath, "mesh.msh"),
             :tri;
@@ -118,8 +124,9 @@ function main(stateInit, stateBcFarfield, degree)
         )
     end
     MPI.Barrier(comm)
+    println("Reading mesh file...")
     mesh = read_partitioned_msh(joinpath(outputpath, "mesh.msh"), comm)
-    pprintln("ncells local = $(ncells(parent(mesh)))")
+    println("ncells local = $(ncells(parent(mesh)))")
 
     # Then we create a `NamedTuple` to hold the simulation parameters.
     params = (degquad = degquad, stateInit = stateInit, stateBcFarfield = stateBcFarfield)
@@ -130,9 +137,9 @@ function main(stateInit, stateBcFarfield, degree)
 
     # Declare boundary conditions and
     # create associated domains and measures
-    Γ_wall      = BoundaryFaceDomain(mesh, ("Wall",))
-    Γ_farfield  = BoundaryFaceDomain(mesh, ("Farfield",))
-    dΓ_wall     = Measure(Γ_wall, degquad)
+    Γ_wall = BoundaryFaceDomain(mesh, ("Wall",))
+    Γ_farfield = BoundaryFaceDomain(mesh, ("Farfield",))
+    dΓ_wall = Measure(Γ_wall, degquad)
     dΓ_farfield = Measure(Γ_farfield, degquad)
 
     params = (
@@ -246,6 +253,20 @@ function steady_solve_expl!(U, V, q, mesh, params, vtk)
     # Free the KSP
     PetscWrap.destroy(ksp)
 
+    # Regression test
+    if is_tested
+        ref_dir = joinpath(@__DIR__, "..", "..", "test", "references")
+        array_gathered = HauntedArrays.gather(Q)
+        @only_root begin
+            results = test_ref(
+                joinpath(ref_dir, "euler-cylinder-steady-expl.jld2"),
+                array_gathered,
+                compare(; atol = 5e-7, rtol = 3e-7),
+            )
+            write_test_counts(joinpath(@__DIR__, "results.csv"), results)
+        end
+    end
+
     return t, FEFunction(U, Q)
 end
 
@@ -323,6 +344,11 @@ function steady_solve_impl!(U, V, q, mesh, params, vtk)
 
         Q += dQ
         t += Δt
+
+        if i % 10 == 0
+            set_dof_values!(q, Q)
+            append_vtk(vtk, q, t, params)
+        end
     end
 
     return t, FEFunction(U, Q)
@@ -375,14 +401,18 @@ function steady_solve_impl_diffeq!(U, V, q, mesh, params, vtk)
         nlsolve = NLNewton(; max_iter = 20),
     )
 
-    Tfinal  = Inf
+    Tfinal = Inf
     problem = ODEProblem(ode, Q0, (0.0, Tfinal), ode_params)
 
-    cb_update = DiscreteCallback(always_true, integrator -> begin
-        HauntedArrays.update_ghosts!(integrator.u)
-    end; save_positions = (false, false))
-    cb_cache  = DiscreteCallback(always_true, update_cache!; save_positions = (false, false))
-    cb_vtk    = DiscreteCallback(always_true, output_vtk; save_positions = (false, false))
+    cb_update = DiscreteCallback(
+        always_true,
+        integrator -> begin
+            HauntedArrays.update_ghosts!(integrator.u)
+        end;
+        save_positions = (false, false),
+    )
+    cb_cache = DiscreteCallback(always_true, update_cache!; save_positions = (false, false))
+    cb_vtk = DiscreteCallback(always_true, output_vtk; save_positions = (false, false))
     cb_steady = TerminateSteadyState(1e-6, 1e-6, condition_steadystate)
 
     error = 1e-1
